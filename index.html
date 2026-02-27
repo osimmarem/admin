@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -847,28 +848,45 @@
                 </div>
             </section>
 
-            <!-- PENGURUS SECTION -->
+            <!-- PENGURUS SECTION - DIPERBAIKI AGAR SESUAI DENGAN WEBSITE -->
             <section id="section-pengurus" class="hidden">
                 <div class="card-3d mb-6">
                     <h3 class="font-bold mb-4 text-lg">Tambah Pengurus</h3>
                     
                     <div class="space-y-4">
-                        <div class="form-grid-3">
-                            <select id="pengurus-section" class="input-3d">
-                                <option value="inti">Pengurus Inti</option>
-                                <option value="khusus">Bidang Khusus</option>
-                                <option value="divisi">Divisi</option>
-                            </select>
-                            <input type="text" id="pengurus-position" placeholder="Jabatan" class="input-3d">
-                            <input type="text" id="pengurus-name" placeholder="Nama" class="input-3d">
+                        <!-- PILIH KATEGORI -->
+                        <select id="pengurus-section" class="input-3d" onchange="togglePengurusForm()">
+                            <option value="inti">🏆 Pengurus Inti</option>
+                            <option value="khusus">⭐ Bidang Khusus</option>
+                            <option value="divisi">📋 Divisi (Koordinator + Anggota)</option>
+                        </select>
+                        
+                        <!-- FORM UNTUK INTI & KHUSUS -->
+                        <div id="form-jabatan">
+                            <input type="text" id="pengurus-jabatan" placeholder="Jabatan (contoh: ketua_osim, humas, keagamaan)" class="input-3d">
+                            <p class="text-xs text-gray-500 mt-1">Gunakan underscore (_). Contoh: ketua_osim, wakil_ketua, sekertaris_1, bendahara_1, humas, keagamaan</p>
                         </div>
                         
+                        <!-- FORM UNTUK DIVISI -->
+                        <div id="form-divisi" style="display: none;">
+                            <div class="form-grid-2">
+                                <input type="text" id="pengurus-nama-divisi" placeholder="Nama Divisi (contoh: bela_negara)" class="input-3d">
+                                <select id="pengurus-role" class="input-3d">
+                                    <option value="koordinator">👑 Koordinator</option>
+                                    <option value="anggota">👤 Anggota</option>
+                                </select>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Contoh divisi: bela_negara, keagamaan, multimedia, olahraga</p>
+                        </div>
+                        
+                        <!-- DATA DIRI -->
                         <div class="form-grid-2">
-                            <input type="text" id="pengurus-class" placeholder="Kelas" class="input-3d">
-                            <input type="text" id="pengurus-contact" placeholder="Kontak" class="input-3d">
+                            <input type="text" id="pengurus-name" placeholder="Nama Lengkap" class="input-3d">
+                            <input type="text" id="pengurus-class" placeholder="Kelas (contoh: XI IPA 1)" class="input-3d">
                         </div>
                         
-                        <textarea id="pengurus-description" placeholder="Deskripsi" class="input-3d h-20"></textarea>
+                        <input type="text" id="pengurus-contact" placeholder="Kontak (opsional)" class="input-3d">
+                        <textarea id="pengurus-description" placeholder="Deskripsi (opsional)" class="input-3d h-20"></textarea>
                         
                         <div class="btn-group">
                             <button onclick="savePengurus()" class="btn-3d bg-purple-600">Simpan</button>
@@ -898,7 +916,7 @@
                         <thead>
                             <tr>
                                 <th>Nama</th>
-                                <th>Jabatan</th>
+                                <th>Jabatan / Divisi</th>
                                 <th>Kategori</th>
                                 <th>Kelas</th>
                                 <th>Aksi</th>
@@ -953,7 +971,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, set, push, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref, set, push, onValue, remove, update, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
     import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     // Firebase Config
@@ -970,6 +988,16 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     const auth = getAuth(app);
+
+    // ===== URUTAN JABATAN PENGURUS INTI =====
+    const urutanJabatanInti = {
+        'ketua_osim': 1,
+        'wakil_ketua': 2,
+        'sekertaris_1': 3,
+        'sekertaris_2': 4,
+        'bendahara_1': 5,
+        'bendahara_2': 6
+    };
 
     // ===== AUTH STATE OBSERVER =====
     onAuthStateChanged(auth, (user) => {
@@ -1127,21 +1155,32 @@
         return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
     }
 
+    // Toggle form berdasarkan pilihan kategori
+    window.togglePengurusForm = function() {
+        const section = document.getElementById('pengurus-section').value;
+        const formJabatan = document.getElementById('form-jabatan');
+        const formDivisi = document.getElementById('form-divisi');
+        
+        if (section === 'divisi') {
+            formJabatan.style.display = 'none';
+            formDivisi.style.display = 'block';
+        } else {
+            formJabatan.style.display = 'block';
+            formDivisi.style.display = 'none';
+        }
+    };
+
     // ===== NAVIGATION =====
     window.showSection = function(section) {
-        // Update sections
         document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden'));
         document.getElementById(`section-${section}`).classList.remove('hidden');
         
-        // Update desktop sidebar
         document.querySelectorAll('.sidebar-link').forEach(link => link.classList.remove('active'));
         document.getElementById(`link-${section}`)?.classList.add('active');
         
-        // Update mobile nav
         document.querySelectorAll('.mobile-nav-item').forEach(item => item.classList.remove('active'));
         document.getElementById(`mobile-${section}`)?.classList.add('active');
         
-        // Update title
         const titles = {
             'dash': 'Dashboard',
             'ann': 'Pengumuman',
@@ -1162,7 +1201,7 @@
         const ids = {
             'ann': ['ann-title', 'ann-category', 'ann-icon', 'ann-author', 'ann-excerpt', 'ann-content', 'ann-id'],
             'pro': ['pro-name', 'pro-shortName', 'pro-icon', 'pro-status', 'pro-tags', 'pro-description', 'pro-id'],
-            'pengurus': ['pengurus-name', 'pengurus-class', 'pengurus-contact', 'pengurus-description', 'pengurus-position'],
+            'pengurus': ['pengurus-name', 'pengurus-class', 'pengurus-contact', 'pengurus-description', 'pengurus-jabatan', 'pengurus-nama-divisi'],
             'evt': ['evt-name', 'evt-date', 'evt-location', 'evt-time', 'evt-description', 'evt-id']
         };
         
@@ -1189,6 +1228,9 @@
         if (prefix === 'evt') {
             document.getElementById('evt-form-title').innerText = 'Tambah Kegiatan';
         }
+        if (prefix === 'pengurus') {
+            togglePengurusForm();
+        }
     };
 
     // ===== FILTER PENGURUS =====
@@ -1214,8 +1256,9 @@
         if (result.isConfirmed) {
             showLoading(true);
             try {
+                console.log(`Menghapus: ${path}/${id}`);
                 await remove(ref(db, `${path}/${id}`));
-                toast('Data dihapus!');
+                toast('Data berhasil dihapus!');
                 logMsg(`Data ${id} dihapus`);
             } catch (error) {
                 console.error('Delete error:', error);
@@ -1238,7 +1281,15 @@
         if (result.isConfirmed) {
             showLoading(true);
             try {
-                await remove(ref(db, `pengurus/${section}/${position}/members/${memberId}`));
+                let path;
+                if (section === 'divisi') {
+                    path = `pengurus/divisi/${position}/members/${memberId}`;
+                } else {
+                    path = `pengurus/${section}/${position}/members/${memberId}`;
+                }
+                
+                console.log('Menghapus path:', path);
+                await remove(ref(db, path));
                 toast('Anggota dihapus!');
             } catch (error) {
                 console.error('Delete error:', error);
@@ -1357,31 +1408,53 @@
         }
     };
 
+    // ===== SAVE PENGURUS (SESUAI DENGAN STRUKTUR WEBSITE) =====
     window.savePengurus = async function() {
         const section = document.getElementById('pengurus-section').value;
-        const position = document.getElementById('pengurus-position').value.toLowerCase().replace(/\s+/g, '_');
         const name = document.getElementById('pengurus-name').value;
+        const kelas = document.getElementById('pengurus-class').value;
 
-        if (!position || !name) {
-            toast('Jabatan dan nama harus diisi!', 'error');
+        if (!name) {
+            toast('Nama harus diisi!', 'error');
             return;
         }
 
-        const data = {
+        let path;
+        let data = {
             name: name,
-            class: document.getElementById('pengurus-class').value,
-            contact: document.getElementById('pengurus-contact').value || ''
+            class: kelas,
+            contact: document.getElementById('pengurus-contact').value || '',
+            description: document.getElementById('pengurus-description').value || ''
         };
+
+        // Tentukan path berdasarkan kategori
+        if (section === 'divisi') {
+            const namaDivisi = document.getElementById('pengurus-nama-divisi').value.toLowerCase().replace(/\s+/g, '_');
+            const role = document.getElementById('pengurus-role').value;
+            
+            if (!namaDivisi) {
+                toast('Nama divisi harus diisi!', 'error');
+                return;
+            }
+            
+            data.role = role;
+            path = `pengurus/divisi/${namaDivisi}/members`;
+            
+        } else {
+            const jabatan = document.getElementById('pengurus-jabatan').value.toLowerCase().replace(/\s+/g, '_');
+            
+            if (!jabatan) {
+                toast('Jabatan harus diisi!', 'error');
+                return;
+            }
+            
+            path = `pengurus/${section}/${jabatan}/members`;
+        }
 
         showLoading(true);
         try {
-            const newRef = push(ref(db, `pengurus/${section}/${position}/members`));
+            const newRef = push(ref(db, path));
             await set(newRef, data);
-            
-            await update(ref(db, `pengurus/${section}/${position}`), {
-                description: document.getElementById('pengurus-description').value || ''
-            });
-            
             toast('Pengurus ditambahkan!');
             resetForm('pengurus');
         } catch (error) {
@@ -1392,11 +1465,14 @@
         }
     };
 
+    // ===== SAVE EVENT =====
     window.saveEvent = async function() {
         const id = document.getElementById('evt-id').value;
+        const date = document.getElementById('evt-date').value;
+        
         const data = {
             name: document.getElementById('evt-name').value,
-            date: document.getElementById('evt-date').value,
+            date: date,
             location: document.getElementById('evt-location').value,
             time: document.getElementById('evt-time').value,
             description: document.getElementById('evt-description').value
@@ -1413,8 +1489,8 @@
                 await update(ref(db, `events/${id}`), data);
                 toast('Kegiatan diperbarui!');
             } else {
-                const newRef = push(ref(db, 'events'));
-                await set(newRef, data);
+                // Gunakan tanggal sebagai key
+                await set(ref(db, `events/${date}`), data);
                 toast('Kegiatan ditambahkan!');
             }
             resetForm('evt');
@@ -1426,7 +1502,7 @@
         }
     };
 
-    // ===== INIT ENGINE =====
+    // ===== INIT ENGINE (SESUAI DENGAN WEBSITE) =====
     function initEngine() {
         logMsg("Menginisialisasi database...");
 
@@ -1496,7 +1572,7 @@
             document.getElementById('count-pro-ongoing').innerText = berjalan;
         });
 
-        // Pengurus
+        // PENGURUS (SESUAI DENGAN WEBSITE)
         onValue(ref(db, 'pengurus'), (snapshot) => {
             const tbody = document.getElementById('body-pengurus');
             tbody.innerHTML = '';
@@ -1505,16 +1581,20 @@
             if (snapshot.exists()) {
                 const data = snapshot.val();
                 
-                Object.entries(data).forEach(([section, positions]) => {
-                    Object.entries(positions).forEach(([position, posData]) => {
+                // INTI
+                if (data.inti) {
+                    // Urutkan berdasarkan urutanJabatanInti
+                    const sortedInti = Object.entries(data.inti).sort(([posA], [posB]) => {
+                        return (urutanJabatanInti[posA] || 999) - (urutanJabatanInti[posB] || 999);
+                    });
+                    
+                    sortedInti.forEach(([position, posData]) => {
                         if (posData.members) {
                             Object.entries(posData.members).forEach(([memberId, member]) => {
                                 total++;
-                                if (section === 'inti') inti++;
-                                else if (section === 'khusus') khusus++;
-                                else if (section === 'divisi') divisi++;
+                                inti++;
                                 
-                                tbody.innerHTML += `<tr data-category="${section}">
+                                tbody.innerHTML += `<tr data-category="inti">
                                     <td>
                                         <div class="flex items-center gap-2">
                                             <div class="member-avatar">${getInitials(member.name)}</div>
@@ -1522,20 +1602,74 @@
                                         </div>
                                     </td>
                                     <td>${position.replace(/_/g, ' ').toUpperCase()}</td>
-                                    <td><span class="badge ${
-                                        section === 'inti' ? 'bg-blue-100 text-blue-800' : 
-                                        section === 'khusus' ? 'bg-green-100 text-green-800' : 
-                                        'bg-purple-100 text-purple-800'
-                                    }">${section.toUpperCase()}</span></td>
+                                    <td><span class="badge bg-blue-100 text-blue-800">INTI</span></td>
                                     <td>${member.class || '-'}</td>
                                     <td>
-                                        <button onclick="delPengurus('${section}','${position}','${memberId}')" class="text-red-600"><i class="fas fa-trash"></i></button>
+                                        <button onclick="delPengurus('inti','${position}','${memberId}')" class="text-red-600"><i class="fas fa-trash"></i></button>
                                     </td>
                                 </tr>`;
                             });
                         }
                     });
-                });
+                }
+                
+                // KHUSUS
+                if (data.khusus) {
+                    Object.entries(data.khusus).forEach(([position, posData]) => {
+                        if (posData.members) {
+                            Object.entries(posData.members).forEach(([memberId, member]) => {
+                                total++;
+                                khusus++;
+                                
+                                tbody.innerHTML += `<tr data-category="khusus">
+                                    <td>
+                                        <div class="flex items-center gap-2">
+                                            <div class="member-avatar">${getInitials(member.name)}</div>
+                                            ${member.name}
+                                        </div>
+                                    </td>
+                                    <td>${position.replace(/_/g, ' ').toUpperCase()}</td>
+                                    <td><span class="badge bg-green-100 text-green-800">KHUSUS</span></td>
+                                    <td>${member.class || '-'}</td>
+                                    <td>
+                                        <button onclick="delPengurus('khusus','${position}','${memberId}')" class="text-red-600"><i class="fas fa-trash"></i></button>
+                                    </td>
+                                </tr>`;
+                            });
+                        }
+                    });
+                }
+                
+                // DIVISI
+                if (data.divisi) {
+                    Object.entries(data.divisi).forEach(([divisiName, divisiData]) => {
+                        if (divisiData.members) {
+                            Object.entries(divisiData.members).forEach(([memberId, member]) => {
+                                total++;
+                                divisi++;
+                                
+                                const roleBadge = member.role === 'koordinator' 
+                                    ? '<span class="badge bg-yellow-100 text-yellow-800">Koordinator</span>' 
+                                    : '<span class="badge bg-gray-100 text-gray-800">Anggota</span>';
+                                
+                                tbody.innerHTML += `<tr data-category="divisi">
+                                    <td>
+                                        <div class="flex items-center gap-2">
+                                            <div class="member-avatar">${getInitials(member.name)}</div>
+                                            ${member.name}
+                                        </div>
+                                    </td>
+                                    <td>${divisiName.replace(/_/g, ' ').toUpperCase()} ${roleBadge}</td>
+                                    <td><span class="badge bg-purple-100 text-purple-800">DIVISI</span></td>
+                                    <td>${member.class || '-'}</td>
+                                    <td>
+                                        <button onclick="delPengurus('divisi','${divisiName}','${memberId}')" class="text-red-600"><i class="fas fa-trash"></i></button>
+                                    </td>
+                                </tr>`;
+                            });
+                        }
+                    });
+                }
             }
             
             document.getElementById('count-pengurus').innerText = total;
@@ -1573,6 +1707,7 @@
         });
 
         logMsg("Database siap");
+        togglePengurusForm(); // Set initial form state
     }
 
     // Initialize Lucide icons
