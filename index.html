@@ -441,6 +441,22 @@
             font-weight: 700;
             font-size: 16px;
             box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3);
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .member-avatar-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .photo-thumb {
+            width: 60px;
+            height: 60px;
+            border-radius: 10px;
+            object-fit: cover;
+            border: 2px solid #e2e8f0;
         }
 
         /* FILTER CARD */
@@ -539,10 +555,10 @@
             
             <div class="space-y-4">
                 <input type="email" id="login-email" placeholder="Email" 
-                    class="input-3d" value="osimmamaarifrembang@gmail.com">
+                    class="input-3d" autocomplete="username">
                 
                 <div class="password-field">
-                    <input type="password" id="login-password" placeholder="Password" value="osim2026yey">
+                    <input type="password" id="login-password" placeholder="Password" autocomplete="current-password">
                     <button type="button" id="toggle-password">
                         <i class="far fa-eye"></i>
                     </button>
@@ -580,10 +596,10 @@
             
             <div class="space-y-4">
                 <input type="email" id="reset-email" placeholder="Email" 
-                    class="input-3d" value="osimmamaarifrembang@gmail.com">
+                    class="input-3d" autocomplete="username">
                 
                 <div class="password-field">
-                    <input type="password" id="new-password" placeholder="Password Baru" value="osim2026yey">
+                    <input type="password" id="new-password" placeholder="Password Baru" autocomplete="new-password">
                     <button type="button" id="toggle-new-password">
                         <i class="far fa-eye"></i>
                     </button>
@@ -753,6 +769,16 @@
                     <input type="hidden" id="ann-id">
                     
                     <div class="space-y-4">
+                        <!-- FOTO PENGUMUMAN (LINK URL, CONTOH: DARI GITHUB) -->
+                        <div>
+                            <label class="text-sm font-semibold text-gray-600 block mb-2">Link Foto Pengumuman</label>
+                            <div class="flex items-center gap-4">
+                                <img id="ann-photo-preview" class="hidden w-20 h-20 rounded-xl object-cover border-2 border-gray-200" src="" alt="Pratinjau foto">
+                                <input type="url" id="ann-photo-url" placeholder="https://raw.githubusercontent.com/.../lomba-agustusan.jpg" class="input-3d">
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Opsional. Tempel link foto (mis. dari GitHub). Foto akan tampil di kartu pengumuman pada website.</p>
+                        </div>
+
                         <input type="text" id="ann-title" placeholder="Judul Pengumuman" class="input-3d">
                         
                         <div class="form-grid-2">
@@ -785,6 +811,7 @@
                     <table>
                         <thead>
                             <tr>
+                                <th>Foto</th>
                                 <th>Kategori</th>
                                 <th>Judul</th>
                                 <th>Penulis</th>
@@ -851,9 +878,21 @@
             <!-- PENGURUS SECTION - DIPERBAIKI AGAR SESUAI DENGAN WEBSITE -->
             <section id="section-pengurus" class="hidden">
                 <div class="card-3d mb-6">
-                    <h3 class="font-bold mb-4 text-lg">Tambah Pengurus</h3>
+                    <h3 class="font-bold mb-4 text-lg" id="pengurus-form-title">Tambah Pengurus</h3>
+                    <input type="hidden" id="pengurus-id">
+                    <input type="hidden" id="pengurus-edit-path">
                     
                     <div class="space-y-4">
+                        <!-- FOTO ANGGOTA (LINK URL, CONTOH: DARI GITHUB) -->
+                        <div>
+                            <label class="text-sm font-semibold text-gray-600 block mb-2">Link Foto Anggota</label>
+                            <div class="flex items-center gap-4">
+                                <img id="pengurus-photo-preview" class="hidden w-20 h-20 rounded-xl object-cover border-2 border-gray-200" src="" alt="Pratinjau foto">
+                                <input type="url" id="pengurus-photo-url" placeholder="https://raw.githubusercontent.com/.../ketua.png" class="input-3d">
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Opsional. Tempel link foto (mis. dari GitHub). Nama file bebas, contoh: ketua.png, wakil.png, dst.</p>
+                        </div>
+
                         <!-- PILIH KATEGORI -->
                         <select id="pengurus-section" class="input-3d" onchange="togglePengurusForm()">
                             <option value="inti">🏆 Pengurus Inti</option>
@@ -890,7 +929,7 @@
                         
                         <div class="btn-group">
                             <button onclick="savePengurus()" class="btn-3d bg-purple-600">Simpan</button>
-                            <button onclick="resetForm('pengurus')" class="btn-3d bg-gray-600">Reset</button>
+                            <button onclick="resetForm('pengurus')" class="btn-3d bg-gray-600">Batal / Reset</button>
                         </div>
                     </div>
                 </div>
@@ -988,6 +1027,32 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     const auth = getAuth(app);
+
+    // Foto TIDAK diupload ke Firebase Storage (butuh paket Blaze/berbayar).
+    // Sebagai gantinya, foto dihosting sendiri (mis. di GitHub) dan admin cukup
+    // menempelkan link URL-nya di sini. Contoh link GitHub (raw):
+    // https://raw.githubusercontent.com/USERNAME/REPO/main/foto/ketua.png
+
+    // Menampilkan pratinjau foto dari URL yang diketik/ditempel admin
+    function setupPhotoPreview(inputId, previewId) {
+        const input = document.getElementById(inputId);
+        const preview = document.getElementById(previewId);
+        if (!input || !preview) return;
+        const update = () => {
+            const url = input.value.trim();
+            if (url) {
+                preview.src = url;
+                preview.classList.remove('hidden');
+            } else {
+                preview.classList.add('hidden');
+                preview.src = '';
+            }
+        };
+        input.addEventListener('input', update);
+        preview.addEventListener('error', () => {
+            preview.classList.add('hidden');
+        });
+    }
 
     // ===== URUTAN JABATAN PENGURUS INTI =====
     const urutanJabatanInti = {
@@ -1155,6 +1220,14 @@
         return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
     }
 
+    // Menampilkan foto anggota jika ada, jika tidak tampilkan inisial nama
+    function photoOrInitials(member) {
+        if (member && member.photoUrl) {
+            return `<img src="${member.photoUrl}" alt="${member.name || ''}" class="member-avatar-img">`;
+        }
+        return getInitials(member?.name);
+    }
+
     // Toggle form berdasarkan pilihan kategori
     window.togglePengurusForm = function() {
         const section = document.getElementById('pengurus-section').value;
@@ -1199,9 +1272,9 @@
     // ===== RESET FORM =====
     window.resetForm = function(prefix) {
         const ids = {
-            'ann': ['ann-title', 'ann-category', 'ann-icon', 'ann-author', 'ann-excerpt', 'ann-content', 'ann-id'],
+            'ann': ['ann-title', 'ann-category', 'ann-icon', 'ann-author', 'ann-excerpt', 'ann-content', 'ann-id', 'ann-photo-url'],
             'pro': ['pro-name', 'pro-shortName', 'pro-icon', 'pro-status', 'pro-tags', 'pro-description', 'pro-id'],
-            'pengurus': ['pengurus-name', 'pengurus-class', 'pengurus-contact', 'pengurus-description', 'pengurus-jabatan', 'pengurus-nama-divisi'],
+            'pengurus': ['pengurus-name', 'pengurus-class', 'pengurus-contact', 'pengurus-description', 'pengurus-jabatan', 'pengurus-nama-divisi', 'pengurus-id', 'pengurus-edit-path', 'pengurus-photo-url'],
             'evt': ['evt-name', 'evt-date', 'evt-location', 'evt-time', 'evt-description', 'evt-id']
         };
         
@@ -1221,6 +1294,9 @@
         if (prefix === 'ann') {
             document.getElementById('ann-author').value = 'Admin';
             document.getElementById('ann-form-title').innerText = 'Tambah Pengumuman';
+            const preview = document.getElementById('ann-photo-preview');
+            preview.classList.add('hidden');
+            preview.src = '';
         }
         if (prefix === 'pro') {
             document.getElementById('pro-form-title').innerText = 'Tambah Program Kerja';
@@ -1230,6 +1306,10 @@
         }
         if (prefix === 'pengurus') {
             togglePengurusForm();
+            document.getElementById('pengurus-form-title').innerText = 'Tambah Pengurus';
+            const preview = document.getElementById('pengurus-photo-preview');
+            preview.classList.add('hidden');
+            preview.src = '';
         }
     };
 
@@ -1309,8 +1389,20 @@
         document.getElementById('ann-author').value = data.author || 'Admin';
         document.getElementById('ann-excerpt').value = data.excerpt || '';
         document.getElementById('ann-content').value = data.content || '';
+        document.getElementById('ann-photo-url').value = data.imageUrl || '';
+
+        const preview = document.getElementById('ann-photo-preview');
+        if (data.imageUrl) {
+            preview.src = data.imageUrl;
+            preview.classList.remove('hidden');
+        } else {
+            preview.classList.add('hidden');
+            preview.src = '';
+        }
+
         document.getElementById('ann-form-title').innerText = 'Edit Pengumuman';
         showSection('ann');
+        document.querySelector('#section-ann .card-3d').scrollIntoView({ behavior: 'smooth' });
     };
 
     window.editProker = function(id, data) {
@@ -1323,6 +1415,40 @@
         document.getElementById('pro-description').value = data.description || '';
         document.getElementById('pro-form-title').innerText = 'Edit Program Kerja';
         showSection('pro');
+    };
+
+    window.editPengurus = function(section, positionOrDivisi, memberId, member) {
+        document.getElementById('pengurus-section').value = section;
+        togglePengurusForm();
+
+        if (section === 'divisi') {
+            document.getElementById('pengurus-nama-divisi').value = positionOrDivisi;
+            document.getElementById('pengurus-role').value = member.role || 'anggota';
+        } else {
+            document.getElementById('pengurus-jabatan').value = positionOrDivisi;
+        }
+
+        document.getElementById('pengurus-name').value = member.name || '';
+        document.getElementById('pengurus-class').value = member.class || '';
+        document.getElementById('pengurus-contact').value = member.contact || '';
+        document.getElementById('pengurus-description').value = member.description || '';
+
+        document.getElementById('pengurus-id').value = memberId;
+        document.getElementById('pengurus-edit-path').value = `pengurus/${section}/${positionOrDivisi}/members`;
+        document.getElementById('pengurus-photo-url').value = member.photoUrl || '';
+
+        const preview = document.getElementById('pengurus-photo-preview');
+        if (member.photoUrl) {
+            preview.src = member.photoUrl;
+            preview.classList.remove('hidden');
+        } else {
+            preview.classList.add('hidden');
+            preview.src = '';
+        }
+
+        document.getElementById('pengurus-form-title').innerText = 'Edit Pengurus';
+        showSection('pengurus');
+        document.querySelector('#section-pengurus .card-3d').scrollIntoView({ behavior: 'smooth' });
     };
 
     window.editEvent = function(id, data) {
@@ -1339,13 +1465,17 @@
     // ===== SAVE FUNCTIONS =====
     window.saveAnnouncement = async function() {
         const id = document.getElementById('ann-id').value;
+        const photoUrl = document.getElementById('ann-photo-url').value.trim();
+
         const data = {
             title: document.getElementById('ann-title').value,
             category: document.getElementById('ann-category').value,
             icon: document.getElementById('ann-icon').value,
             excerpt: document.getElementById('ann-excerpt').value || document.getElementById('ann-content').value.substring(0, 150) + '...',
             content: document.getElementById('ann-content').value,
+            fullContent: document.getElementById('ann-content').value,
             author: document.getElementById('ann-author').value,
+            imageUrl: photoUrl || '',
             date: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
         };
 
@@ -1413,6 +1543,9 @@
         const section = document.getElementById('pengurus-section').value;
         const name = document.getElementById('pengurus-name').value;
         const kelas = document.getElementById('pengurus-class').value;
+        const memberId = document.getElementById('pengurus-id').value;
+        const editPath = document.getElementById('pengurus-edit-path').value;
+        const photoUrl = document.getElementById('pengurus-photo-url').value.trim();
 
         if (!name) {
             toast('Nama harus diisi!', 'error');
@@ -1424,7 +1557,8 @@
             name: name,
             class: kelas,
             contact: document.getElementById('pengurus-contact').value || '',
-            description: document.getElementById('pengurus-description').value || ''
+            description: document.getElementById('pengurus-description').value || '',
+            photoUrl: photoUrl || ''
         };
 
         // Tentukan path berdasarkan kategori
@@ -1438,7 +1572,7 @@
             }
             
             data.role = role;
-            path = `pengurus/divisi/${namaDivisi}/members`;
+            path = memberId ? editPath : `pengurus/divisi/${namaDivisi}/members`;
             
         } else {
             const jabatan = document.getElementById('pengurus-jabatan').value.toLowerCase().replace(/\s+/g, '_');
@@ -1448,14 +1582,19 @@
                 return;
             }
             
-            path = `pengurus/${section}/${jabatan}/members`;
+            path = memberId ? editPath : `pengurus/${section}/${jabatan}/members`;
         }
 
         showLoading(true);
         try {
-            const newRef = push(ref(db, path));
-            await set(newRef, data);
-            toast('Pengurus ditambahkan!');
+            if (memberId) {
+                await update(ref(db, `${path}/${memberId}`), data);
+                toast('Data pengurus diperbarui!');
+            } else {
+                const newRef = push(ref(db, path));
+                await set(newRef, data);
+                toast('Pengurus ditambahkan!');
+            }
             resetForm('pengurus');
         } catch (error) {
             console.error('Save error:', error);
@@ -1505,6 +1644,8 @@
     // ===== INIT ENGINE (SESUAI DENGAN WEBSITE) =====
     function initEngine() {
         logMsg("Menginisialisasi database...");
+        setupPhotoPreview('pengurus-photo-url', 'pengurus-photo-preview');
+        setupPhotoPreview('ann-photo-url', 'ann-photo-preview');
 
         // Announcements
         onValue(ref(db, 'announcements'), (snapshot) => {
@@ -1520,12 +1661,13 @@
                     if (item.category === 'PENTING') penting++;
                     
                     tbody.innerHTML += `<tr>
+                        <td>${item.imageUrl ? `<img src="${item.imageUrl}" alt="${item.title || ''}" class="photo-thumb">` : `<div class="member-avatar" style="width:44px;height:44px;"><i class="fas fa-image"></i></div>`}</td>
                         <td><span class="badge ${item.category === 'PENTING' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}">${item.category}</span></td>
                         <td>${item.title || '-'}</td>
                         <td>${item.author || '-'}</td>
                         <td>${item.date || '-'}</td>
                         <td>
-                            <button onclick='editAnnouncement("${id}", ${JSON.stringify(item).replace(/"/g, '&quot;')})' class="text-blue-600 mr-2"><i class="fas fa-edit"></i></button>
+                            <button onclick='editAnnouncement("${id}", ${JSON.stringify(item).replace(/"/g, '&quot;').replace(/'/g, '&#39;')})' class="text-blue-600 mr-2"><i class="fas fa-edit"></i></button>
                             <button onclick="delRecord('announcements','${id}')" class="text-red-600"><i class="fas fa-trash"></i></button>
                         </td>
                     </tr>`;
@@ -1561,7 +1703,7 @@
                         }">${item.status}</span></td>
                         <td>${tags}</td>
                         <td>
-                            <button onclick='editProker("${id}", ${JSON.stringify(item).replace(/"/g, '&quot;')})' class="text-blue-600 mr-2"><i class="fas fa-edit"></i></button>
+                            <button onclick='editProker("${id}", ${JSON.stringify(item).replace(/"/g, '&quot;').replace(/'/g, '&#39;')})' class="text-blue-600 mr-2"><i class="fas fa-edit"></i></button>
                             <button onclick="delRecord('proker','${id}')" class="text-red-600"><i class="fas fa-trash"></i></button>
                         </td>
                     </tr>`;
@@ -1597,7 +1739,7 @@
                                 tbody.innerHTML += `<tr data-category="inti">
                                     <td>
                                         <div class="flex items-center gap-2">
-                                            <div class="member-avatar">${getInitials(member.name)}</div>
+                                            <div class="member-avatar">${photoOrInitials(member)}</div>
                                             ${member.name}
                                         </div>
                                     </td>
@@ -1605,6 +1747,7 @@
                                     <td><span class="badge bg-blue-100 text-blue-800">INTI</span></td>
                                     <td>${member.class || '-'}</td>
                                     <td>
+                                        <button onclick='editPengurus("inti","${position}","${memberId}", ${JSON.stringify(member).replace(/"/g, '&quot;').replace(/'/g, '&#39;')})' class="text-blue-600 mr-2"><i class="fas fa-edit"></i></button>
                                         <button onclick="delPengurus('inti','${position}','${memberId}')" class="text-red-600"><i class="fas fa-trash"></i></button>
                                     </td>
                                 </tr>`;
@@ -1624,7 +1767,7 @@
                                 tbody.innerHTML += `<tr data-category="khusus">
                                     <td>
                                         <div class="flex items-center gap-2">
-                                            <div class="member-avatar">${getInitials(member.name)}</div>
+                                            <div class="member-avatar">${photoOrInitials(member)}</div>
                                             ${member.name}
                                         </div>
                                     </td>
@@ -1632,6 +1775,7 @@
                                     <td><span class="badge bg-green-100 text-green-800">KHUSUS</span></td>
                                     <td>${member.class || '-'}</td>
                                     <td>
+                                        <button onclick='editPengurus("khusus","${position}","${memberId}", ${JSON.stringify(member).replace(/"/g, '&quot;').replace(/'/g, '&#39;')})' class="text-blue-600 mr-2"><i class="fas fa-edit"></i></button>
                                         <button onclick="delPengurus('khusus','${position}','${memberId}')" class="text-red-600"><i class="fas fa-trash"></i></button>
                                     </td>
                                 </tr>`;
@@ -1655,7 +1799,7 @@
                                 tbody.innerHTML += `<tr data-category="divisi">
                                     <td>
                                         <div class="flex items-center gap-2">
-                                            <div class="member-avatar">${getInitials(member.name)}</div>
+                                            <div class="member-avatar">${photoOrInitials(member)}</div>
                                             ${member.name}
                                         </div>
                                     </td>
@@ -1663,6 +1807,7 @@
                                     <td><span class="badge bg-purple-100 text-purple-800">DIVISI</span></td>
                                     <td>${member.class || '-'}</td>
                                     <td>
+                                        <button onclick='editPengurus("divisi","${divisiName}","${memberId}", ${JSON.stringify(member).replace(/"/g, '&quot;').replace(/'/g, '&#39;')})' class="text-blue-600 mr-2"><i class="fas fa-edit"></i></button>
                                         <button onclick="delPengurus('divisi','${divisiName}','${memberId}')" class="text-red-600"><i class="fas fa-trash"></i></button>
                                     </td>
                                 </tr>`;
@@ -1696,7 +1841,7 @@
                         <td>${date} ${item.time ? item.time : ''}</td>
                         <td>${item.location || '-'}</td>
                         <td>
-                            <button onclick='editEvent("${id}", ${JSON.stringify(item).replace(/"/g, '&quot;')})' class="text-blue-600 mr-2"><i class="fas fa-edit"></i></button>
+                            <button onclick='editEvent("${id}", ${JSON.stringify(item).replace(/"/g, '&quot;').replace(/'/g, '&#39;')})' class="text-blue-600 mr-2"><i class="fas fa-edit"></i></button>
                             <button onclick="delRecord('events','${id}')" class="text-red-600"><i class="fas fa-trash"></i></button>
                         </td>
                     </tr>`;
