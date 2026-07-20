@@ -895,15 +895,16 @@
 
                         <!-- PILIH KATEGORI -->
                         <select id="pengurus-section" class="input-3d" onchange="togglePengurusForm()">
+                            <option value="pembina">🎓 Pembina OSIM</option>
                             <option value="inti">🏆 Pengurus Inti</option>
                             <option value="khusus">⭐ Bidang Khusus</option>
                             <option value="divisi">📋 Divisi (Koordinator + Anggota)</option>
                         </select>
                         
-                        <!-- FORM UNTUK INTI & KHUSUS -->
+                        <!-- FORM UNTUK PEMBINA, INTI & KHUSUS -->
                         <div id="form-jabatan">
-                            <input type="text" id="pengurus-jabatan" placeholder="Jabatan (contoh: ketua_osim, humas, keagamaan)" class="input-3d">
-                            <p class="text-xs text-gray-500 mt-1">Gunakan underscore (_). Contoh: ketua_osim, wakil_ketua, sekertaris_1, bendahara_1, humas, keagamaan</p>
+                            <input type="text" id="pengurus-jabatan" placeholder="Jabatan (contoh: pembina_1, ketua_osim, humas)" class="input-3d">
+                            <p class="text-xs text-gray-500 mt-1">Gunakan underscore (_). Contoh Pembina: pembina_1, wakil_pembina. Contoh Inti: ketua_osim, wakil_ketua, sekertaris_1, bendahara_1. Contoh Khusus: humas, keagamaan</p>
                         </div>
                         
                         <!-- FORM UNTUK DIVISI -->
@@ -936,6 +937,10 @@
                 
                 <!-- Filter -->
                 <div class="grid-filter">
+                    <div onclick="filterPengurus('pembina')" class="filter-card">
+                        <div class="text-3xl font-bold text-sky-600 mb-2" id="count-pembina">0</div>
+                        <div class="font-semibold text-gray-700">Pembina OSIM</div>
+                    </div>
                     <div onclick="filterPengurus('inti')" class="filter-card">
                         <div class="text-3xl font-bold text-blue-600 mb-2" id="count-inti">0</div>
                         <div class="font-semibold text-gray-700">Pengurus Inti</div>
@@ -1718,10 +1723,38 @@
         onValue(ref(db, 'pengurus'), (snapshot) => {
             const tbody = document.getElementById('body-pengurus');
             tbody.innerHTML = '';
-            let total = 0, inti = 0, khusus = 0, divisi = 0;
+            let total = 0, pembina = 0, inti = 0, khusus = 0, divisi = 0;
             
             if (snapshot.exists()) {
                 const data = snapshot.val();
+                
+                // PEMBINA
+                if (data.pembina) {
+                    Object.entries(data.pembina).forEach(([position, posData]) => {
+                        if (posData.members) {
+                            Object.entries(posData.members).forEach(([memberId, member]) => {
+                                total++;
+                                pembina++;
+                                
+                                tbody.innerHTML += `<tr data-category="pembina">
+                                    <td>
+                                        <div class="flex items-center gap-2">
+                                            <div class="member-avatar">${photoOrInitials(member)}</div>
+                                            ${member.name}
+                                        </div>
+                                    </td>
+                                    <td>${position.replace(/_/g, ' ').toUpperCase()}</td>
+                                    <td><span class="badge bg-sky-100 text-sky-800">PEMBINA</span></td>
+                                    <td>${member.class || '-'}</td>
+                                    <td>
+                                        <button onclick='editPengurus("pembina","${position}","${memberId}", ${JSON.stringify(member).replace(/"/g, '&quot;').replace(/'/g, '&#39;')})' class="text-blue-600 mr-2"><i class="fas fa-edit"></i></button>
+                                        <button onclick="delPengurus('pembina','${position}','${memberId}')" class="text-red-600"><i class="fas fa-trash"></i></button>
+                                    </td>
+                                </tr>`;
+                            });
+                        }
+                    });
+                }
                 
                 // INTI
                 if (data.inti) {
@@ -1818,6 +1851,7 @@
             }
             
             document.getElementById('count-pengurus').innerText = total;
+            document.getElementById('count-pembina').innerText = pembina;
             document.getElementById('count-inti').innerText = inti;
             document.getElementById('count-khusus').innerText = khusus;
             document.getElementById('count-divisi').innerText = divisi;
